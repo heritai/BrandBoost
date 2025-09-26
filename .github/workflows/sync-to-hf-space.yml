@@ -1,0 +1,39 @@
+name: Sync to Hugging Face Space
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Git
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        
+    - name: Clone Hugging Face Space
+      run: |
+        git clone https://huggingface.co/spaces/${{ secrets.HF_USERNAME }}/${{ secrets.HF_SPACE_NAME }} hf-space
+        cd hf-space
+        git lfs install
+        
+    - name: Sync files to HF Space
+      run: |
+        # Copy all files except .git and .github
+        rsync -av --exclude='.git' --exclude='.github' --exclude='__pycache__' --exclude='*.pyc' . hf-space/
+        
+    - name: Commit and push to HF Space
+      run: |
+        cd hf-space
+        git add .
+        git commit -m "Auto-sync from GitHub: ${{ github.sha }}" || exit 0
+        git push origin main
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
