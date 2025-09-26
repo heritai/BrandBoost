@@ -4,7 +4,7 @@
 echo "🔄 Syncing BrandBoost to Hugging Face Space..."
 
 # Configuration
-HF_USERNAME="heritai"
+HF_USERNAME="youtah"
 HF_SPACE_NAME="brandboost-content-generator"
 HF_SPACE_URL="https://huggingface.co/spaces/$HF_USERNAME/$HF_SPACE_NAME"
 
