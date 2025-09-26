@@ -20,6 +20,22 @@ jobs:
         
     - name: Clone Hugging Face Space
       run: |
+        # Check if secrets are set
+        if [ -z "${{ secrets.HF_USERNAME }}" ]; then
+          echo "❌ Error: HF_USERNAME secret is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.HF_SPACE_NAME }}" ]; then
+          echo "❌ Error: HF_SPACE_NAME secret is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.HF_TOKEN }}" ]; then
+          echo "❌ Error: HF_TOKEN secret is not set"
+          exit 1
+        fi
+        
+        # Clone the space
+        echo "🔄 Cloning space: ${{ secrets.HF_USERNAME }}/${{ secrets.HF_SPACE_NAME }}"
         git clone https://huggingface.co/spaces/${{ secrets.HF_USERNAME }}/${{ secrets.HF_SPACE_NAME }} hf-space
         cd hf-space
         git lfs install
@@ -34,6 +50,4 @@ jobs:
         cd hf-space
         git add .
         git commit -m "Auto-sync from GitHub: ${{ github.sha }}" || exit 0
-        git push origin main
-      env:
-        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        git push https://${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${{ secrets.HF_USERNAME }}/${{ secrets.HF_SPACE_NAME }}.git main
