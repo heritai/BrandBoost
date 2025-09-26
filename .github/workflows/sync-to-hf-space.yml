@@ -1,4 +1,4 @@
-name: Sync to Hugging Face Space
+name: Sync to Hugging Face Space (Hub Method)
 
 on:
   push:
@@ -17,36 +17,87 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Setup Git
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Install Hugging Face Hub
       run: |
-        git config --global user.name "GitHub Actions"
-        git config --global user.email "actions@github.com"
+        pip install huggingface_hub
         
-    - name: Clone Hugging Face Space
+    - name: Sync to HF Space
       run: |
-        # Check if HF token is set
-        if [ -z "${{ secrets.HF_TOKEN }}" ]; then
-          echo "❌ Error: HF_TOKEN secret is not set"
-          echo "Please add your Hugging Face token as a GitHub secret"
-          exit 1
-        fi
+        python -c "
+        from huggingface_hub import HfApi, Repository
+        import os
         
-        # Clone the space with authentication
-        echo "🔄 Cloning space: ${{ env.HF_USERNAME }}/${{ env.HF_SPACE_NAME }}"
-        git clone https://${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${{ env.HF_USERNAME }}/${{ env.HF_SPACE_NAME }}.git hf-space
-        cd hf-space
-        git lfs install
+        # Initialize API with token
+        api = HfApi(token='${{ secrets.HF_TOKEN }}')
         
-    - name: Sync files to HF Space
-      run: |
-        # Copy all files except .git and .github
-        rsync -av --exclude='.git' --exclude='.github' --exclude='__pycache__' --exclude='*.pyc' . hf-space/
+        # Create or get the space repository
+        repo_id = '${{ env.HF_USERNAME }}/${{ env.HF_SPACE_NAME }}'
         
-    - name: Commit and push to HF Space
-      run: |
-        cd hf-space
-        git add .
-        git commit -m "Auto-sync from GitHub: ${{ github.sha }}" || exit 0
+        try:
+            # Try to get existing repo
+            repo = api.repo_info(repo_id=repo_id, repo_type='space')
+            print(f'✅ Found existing space: {repo_id}')
+        except:
+            print(f'❌ Space {repo_id} not found or not accessible')
+            exit(1)
         
-        # Push directly with authentication URL
-        git push https://${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${{ env.HF_USERNAME }}/${{ env.HF_SPACE_NAME }}.git main
+        # Upload all files
+        print('🔄 Uploading files to Hugging Face Space...')
+        
+        # Upload main files
+        api.upload_file(
+            path_or_fileobj='app.py',
+            path_in_repo='app.py',
+            repo_id=repo_id,
+            repo_type='space'
+        )
+        
+        api.upload_file(
+            path_or_fileobj='requirements.txt',
+            path_in_repo='requirements.txt',
+            repo_id=repo_id,
+            repo_type='space'
+        )
+        
+        api.upload_file(
+            path_or_fileobj='README.md',
+            path_in_repo='README.md',
+            repo_id=repo_id,
+            repo_type='space'
+        )
+        
+        # Upload utils directory
+        import shutil
+        if os.path.exists('utils'):
+            for root, dirs, files in os.walk('utils'):
+                for file in files:
+                    if not file.endswith('.pyc'):
+                        file_path = os.path.join(root, file)
+                        repo_path = file_path
+                        api.upload_file(
+                            path_or_fileobj=file_path,
+                            path_in_repo=repo_path,
+                            repo_id=repo_id,
+                            repo_type='space'
+                        )
+        
+        # Upload sample_data directory
+        if os.path.exists('sample_data'):
+            for root, dirs, files in os.walk('sample_data'):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    repo_path = file_path
+                    api.upload_file(
+                        path_or_fileobj=file_path,
+                        path_in_repo=repo_path,
+                        repo_id=repo_id,
+                        repo_type='space'
+                    )
+        
+        print('✅ Successfully synced to Hugging Face Space!')
+        "
