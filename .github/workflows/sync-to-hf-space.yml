@@ -5,6 +5,10 @@ on:
     branches: [ main ]
   workflow_dispatch: # Allow manual trigger
 
+env:
+  HF_USERNAME: youtah
+  HF_SPACE_NAME: brandboost-content-generator
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -20,23 +24,16 @@ jobs:
         
     - name: Clone Hugging Face Space
       run: |
-        # Check if secrets are set
-        if [ -z "${{ secrets.HF_USERNAME }}" ]; then
-          echo "❌ Error: HF_USERNAME secret is not set"
-          exit 1
-        fi
-        if [ -z "${{ secrets.HF_SPACE_NAME }}" ]; then
-          echo "❌ Error: HF_SPACE_NAME secret is not set"
-          exit 1
-        fi
+        # Check if HF token is set
         if [ -z "${{ secrets.HF_TOKEN }}" ]; then
           echo "❌ Error: HF_TOKEN secret is not set"
+          echo "Please add your Hugging Face token as a GitHub secret"
           exit 1
         fi
         
         # Clone the space
-        echo "🔄 Cloning space: ${{ secrets.HF_USERNAME }}/${{ secrets.HF_SPACE_NAME }}"
-        git clone https://huggingface.co/spaces/${{ secrets.HF_USERNAME }}/${{ secrets.HF_SPACE_NAME }} hf-space
+        echo "🔄 Cloning space: ${{ env.HF_USERNAME }}/${{ env.HF_SPACE_NAME }}"
+        git clone https://huggingface.co/spaces/${{ env.HF_USERNAME }}/${{ env.HF_SPACE_NAME }} hf-space
         cd hf-space
         git lfs install
         
@@ -50,4 +47,4 @@ jobs:
         cd hf-space
         git add .
         git commit -m "Auto-sync from GitHub: ${{ github.sha }}" || exit 0
-        git push https://${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${{ secrets.HF_USERNAME }}/${{ secrets.HF_SPACE_NAME }}.git main
+        git push https://${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${{ env.HF_USERNAME }}/${{ env.HF_SPACE_NAME }}.git main
