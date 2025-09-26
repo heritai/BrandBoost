@@ -268,27 +268,11 @@ def display_generated_content():
             "Generated Content (Editable)",
             value=content_data['content'],
             height=200,
-            help="You can edit the generated content before copying or exporting"
+            help="You can edit the generated content and copy it manually"
         )
         
-        # Action buttons and generation info
-        col1, col2, col3 = st.columns([1, 1, 1])
-        
-        with col1:
-            if st.button("💾 Export as TXT", use_container_width=True):
-                filename = f"content_{int(datetime.now().timestamp())}.txt"
-                filepath = st.session_state.generator.export_content(edited_content, filename)
-                if filepath:
-                    st.success(f"✅ Content exported to {filepath}")
-        
-        with col2:
-            # Copy button with actual functionality
-            if st.button("📋 Copy Content", use_container_width=True):
-                st.code(edited_content, language=None)
-                st.success("✅ Content displayed above - select and copy (Ctrl+C)")
-        
-        with col3:
-            st.write(f"⏱️ Generated in {content_data['generation_time']:.2f} seconds")
+        # Generation info
+        st.write(f"⏱️ Generated in {content_data['generation_time']:.2f} seconds")
         
         # Recommendations
         st.markdown("---")
